@@ -1,0 +1,1 @@
+DELETE w1 FROM weather_data w1 INNER JOIN weather_data w2 WHERE w1.id  AND w1.county = w2.county AND w1.forecast_date = w2.forecast_date; 

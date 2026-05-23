@@ -1,0 +1,29 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "ClimateWatch Kenya — Impact-Based Climate Risk Dashboard API",
+  "main": "app.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node app.js",
+    "dev":   "nodemon app.js",
+    "test":  "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["kenya", "climate", "risk", "dashboard"],
+  "author": "Samuel Anindo",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "axios":      "^1.16.0",
+    "cors":       "^2.8.6",
+    "dotenv":     "^17.4.2",
+    "express":    "^5.2.1",
+    "mysql2":     "^3.22.3",
+    "node-cron":  "^4.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
