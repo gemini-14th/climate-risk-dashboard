@@ -51,7 +51,7 @@ function App() {
     );
   }
 
-  if (error && !riskData?.counties) {
+  if (error && Object.keys(riskData?.counties || {}).length === 0) {
     return (
       <div className="error-screen">
         <p className="error-title">Data Unavailable</p>
