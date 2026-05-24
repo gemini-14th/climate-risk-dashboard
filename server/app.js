@@ -8,6 +8,7 @@ const alertsRoutes   = require('./routes/alerts.routes');
 const countyRoutes   = require('./routes/county.routes');
 const errorHandler   = require('./middleware/errorHandler');
 const { startDataFetcherJob } = require('./jobs/dataFetcher.job');
+const { runMigrations }       = require('./db/migrate');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -51,7 +52,17 @@ app.get('/api/health', (req, res) => {
 app.use(errorHandler);
 
 // ── Start Server ──
-app.listen(PORT, () => {
+// 1. Auto-create database tables (safe to re-run — uses IF NOT EXISTS)
+// 2. Then start the data pipeline
+app.listen(PORT, async () => {
   console.log(`🌍 Climate Risk Dashboard API running on port ${PORT}`);
-  startDataFetcherJob();
+
+  try {
+    await runMigrations();
+    console.log('✅ Database tables ready.');
+    startDataFetcherJob();
+  } catch (err) {
+    console.error('❌ Migration failed — data pipeline NOT started:', err.message);
+    console.error('Check DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT in your environment variables.');
+  }
 });
