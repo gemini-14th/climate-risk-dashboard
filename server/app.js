@@ -14,23 +14,12 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ── CORS ──────────────────────────────────────────────────────────
-// In production, only allow requests from the deployed frontend URL.
-// In development, allow localhost on any port.
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  process.env.CLIENT_URL,           // e.g. https://your-app.vercel.app
-].filter(Boolean);
-
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (Render health checks, curl, UptimeRobot)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.some(o => origin.startsWith(o))) {
-      return callback(null, true);
-    }
-    callback(new Error(`CORS: origin ${origin} not allowed`));
-  },
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'https://climate-risk-dashboard-eta.vercel.app'
+  ],
   credentials: true
 }));
 
