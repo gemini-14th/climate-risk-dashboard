@@ -13,10 +13,9 @@ const getForecast = async (req, res, next) => {
       return res.json(grouped[county] || Object.values(grouped)[0] || []);
     }
 
-    // Fallback: fetch live (only happens if DB is empty)
-    const fresh = await fetchRainfallForecast();
-    const nairobiData = fresh.find(f => f.county === 'Nairobi');
-    res.json(nairobiData?.forecast || []);
+    // Fallback: If DB is empty (pipeline still running), return empty array
+    // instead of fetching all 47 counties on the fly which takes 47-60 seconds and causes timeouts.
+    return res.json([]);
   } catch (error) {
     next(error);
   }
