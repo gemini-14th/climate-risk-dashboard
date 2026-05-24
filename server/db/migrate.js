@@ -73,10 +73,10 @@ const runMigrations = async () => {
     `CREATE TABLE IF NOT EXISTS spi_history (
       id            INT AUTO_INCREMENT PRIMARY KEY,
       county        VARCHAR(100)  NOT NULL,
-      year_month    CHAR(7)       NOT NULL,
+      \`year_month\`    CHAR(7)       NOT NULL,
       spi_value     DECIMAL(5,2)  NOT NULL,
       recorded_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE KEY uq_county_ym (county, year_month)
+      UNIQUE KEY uq_county_ym (county, \`year_month\`)
     )`,
 
     // ── flood_risk_scores (weighted composite 0-100) ──
