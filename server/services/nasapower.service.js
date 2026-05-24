@@ -54,49 +54,70 @@ const fetchCountyBaseline = async (county) => {
  */
 const fetchAndStoreAllBaselines = async () => {
   console.log('[NASA POWER] Starting baseline fetch for all 47 counties...');
-  const BATCH_SIZE = 5;
   let successCount = 0;
 
-  for (let i = 0; i < KENYA_COUNTIES.length; i += BATCH_SIZE) {
-    const batch = KENYA_COUNTIES.slice(i, i + BATCH_SIZE);
-
-    await Promise.all(batch.map(async (county) => {
-      try {
-        const [existing] = await db.execute(
-          'SELECT COUNT(*) AS cnt FROM climate_baselines WHERE county = ?',
-          [county.name]
-        );
-        if (existing[0].cnt >= 12) {
-          console.log(`[NASA POWER] Skipping ${county.name} — baselines exist.`);
-          successCount++;
-          return;
-        }
-
-        const baselines = await fetchCountyBaseline(county);
-
-        for (const { month, mean_mm, stddev_mm } of baselines) {
-          await db.execute(
-            `INSERT INTO climate_baselines
-               (county, \`month\`, mean_mm, stddev_mm, data_years)
-             VALUES (?, ?, ?, ?, 30)
-             ON DUPLICATE KEY UPDATE
-               mean_mm = VALUES(mean_mm),
-               stddev_mm = VALUES(stddev_mm),
-               fetched_at = NOW()`,
-            [county.name, month, mean_mm, stddev_mm]
-          );
-        }
-
-        console.log(`[NASA POWER] Stored baselines for ${county.name}.`);
+  for (const county of KENYA_COUNTIES) {
+    try {
+      const [existing] = await db.execute(
+        'SELECT COUNT(*) AS cnt FROM climate_baselines WHERE county = ?',
+        [county.name]
+      );
+      if (existing[0].cnt >= 12) {
+        console.log(`[NASA POWER] Skipping ${county.name} — baselines exist.`);
         successCount++;
-      } catch (err) {
-        console.error(`[NASA POWER] Failed for ${county.name}:`, err.message);
+        continue;
       }
-    }));
 
-    if (i + BATCH_SIZE < KENYA_COUNTIES.length) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const baselines = await fetchCountyBaseline(county);
+
+      for (const { month, mean_mm, stddev_mm } of baselines) {
+        await db.execute(
+          `INSERT INTO climate_baselines
+             (county, \`month\`, mean_mm, stddev_mm, data_years)
+           VALUES (?, ?, ?, ?, 30)
+           ON DUPLICATE KEY UPDATE
+             mean_mm = VALUES(mean_mm),
+             stddev_mm = VALUES(stddev_mm),
+             fetched_at = NOW()`,
+          [county.name, month, mean_mm, stddev_mm]
+        );
+      }
+
+      console.log(`[NASA POWER] Stored baselines for ${county.name}.`);
+      successCount++;
+    } catch (err) {
+      console.error(`[NASA POWER] Failed for ${county.name}:`, err.message);
+      
+      // Retry logic for 429
+      if (err.response?.status === 429 || err.response?.status === 403) {
+        console.log('[NASA POWER] Rate limited. Waiting 10s...');
+        await new Promise(resolve => setTimeout(resolve, 10000));
+        // Retry one more time
+        try {
+          const baselines = await fetchCountyBaseline(county);
+          for (const { month, mean_mm, stddev_mm } of baselines) {
+            await db.execute(
+              `INSERT INTO climate_baselines
+                 (county, \`month\`, mean_mm, stddev_mm, data_years)
+               VALUES (?, ?, ?, ?, 30)
+               ON DUPLICATE KEY UPDATE
+                 mean_mm = VALUES(mean_mm),
+                 stddev_mm = VALUES(stddev_mm),
+                 fetched_at = NOW()`,
+              [county.name, month, mean_mm, stddev_mm]
+            );
+          }
+          console.log(`[NASA POWER] Retry Stored baselines for ${county.name}.`);
+          successCount++;
+          continue; // Go to next loop after delay
+        } catch (retryErr) {
+          console.error(`[NASA POWER] Retry failed for ${county.name}:`, retryErr.message);
+        }
+      }
     }
+
+    // 2000ms pause between requests to respect NASA's rate limits
+    await new Promise(resolve => setTimeout(resolve, 2000));
   }
 
   console.log(`[NASA POWER] Baseline fetch complete. ${successCount}/47 counties stored.`);
